@@ -1,9 +1,6 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
-    alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
@@ -13,10 +10,11 @@ android {
     namespace = "dev.anilbeesetti.nextplayer"
 
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+
     defaultConfig {
+        applicationId = "dev.anilbeesetti.nextplayer"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        applicationId = "dev.anilbeesetti.nextplayer"
         versionCode = 45
         versionName = "0.15.0"
     }
@@ -27,14 +25,16 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(libs.versions.android.jvm.get().toInt())
-        targetCompatibility = JavaVersion.toVersion(libs.versions.android.jvm.get().toInt())
+        sourceCompatibility = JavaVersion.toVersion(
+            libs.versions.android.jvm.get().toInt()
+        )
+        targetCompatibility = JavaVersion.toVersion(
+            libs.versions.android.jvm.get().toInt()
+        )
     }
 
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.jvm.get()))
-        }
+    kotlinOptions {
+        jvmTarget = libs.versions.android.jvm.get()
     }
 
     buildTypes {
@@ -43,7 +43,7 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "proguard-rules.pro"
             )
         }
 
@@ -56,7 +56,7 @@ android {
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".release"
-            matchingFallbacks.add("release")
+            matchingFallbacks += listOf("release")
         }
     }
 
@@ -71,8 +71,10 @@ android {
 
     splits {
         abi {
-            //noinspection WrongGradleMethod
-            val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
+            val isBuildingBundle =
+                gradle.startParameter.taskNames.any {
+                    it.lowercase().contains("bundle")
+                }
 
             isEnable = !isBuildingBundle
             reset()
@@ -83,14 +85,12 @@ android {
 
     packaging {
         resources {
-            excludes.add("/META-INF/{AL2.0,LGPL2.1}")
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
 
     dependenciesInfo {
-        // Disables dependency metadata when building APKs.
         includeInApk = false
-        // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
 }
