@@ -1,0 +1,172 @@
+package com.santubabu.nextplayerpro.core.ui.composables
+
+import android.graphics.Color as AndroidColor
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.ui.CaptionStyleCompat
+import com.google.android.exoplayer2.ui.StyledPlayerView
+import com.santubabu.nextplayerpro.core.ui.components.*
+
+@Composable
+fun NowPlayingScreen() {
+
+    val context = LocalContext.current
+
+    val trackSelector = remember { DefaultTrackSelector(context) }
+    val player = remember {
+        ExoPlayer.Builder(context)
+            .setTrackSelector(trackSelector)
+            .build()
+    }
+
+    var progress by remember { mutableStateOf(0.3f) }
+    var subtitleDelay by remember { mutableStateOf(0L) }
+    var subtitlesEnabled by remember { mutableStateOf(true) }
+
+    var subtitleSize by remember { mutableStateOf(16f) }
+    var subtitleColor by remember { mutableStateOf(AndroidColor.WHITE) }
+
+    // APPLY SUBTITLE DELAY
+    LaunchedEffect(subtitleDelay) {
+        trackSelector.setParameters(
+            trackSelector.parameters
+                .buildUpon()
+                .setSubtitleDelayMs(subtitleDelay)
+                .build()
+        )
+    }
+
+    // SUBTITLE ON / OFF
+    LaunchedEffect(subtitlesEnabled) {
+        trackSelector.setParameters(
+            trackSelector.parameters
+                .buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !subtitlesEnabled)
+                .build()
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { player.release() }
+    }
+
+    Column {
+
+        // 🎬 VIDEO + SUBTITLES VIEW
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp),
+            factory = {
+                StyledPlayerView(it).apply {
+                    this.player = player
+                    useController = false
+                }
+            },
+            update = { view ->
+                view.subtitleView?.apply {
+                    setFixedTextSize(Cue.TEXT_SIZE_TYPE_SP, subtitleSize)
+                    setStyle(
+                        CaptionStyleCompat(
+                            subtitleColor,
+                            AndroidColor.TRANSPARENT,
+                            AndroidColor.TRANSPARENT,
+                            CaptionStyleCompat.EDGE_TYPE_OUTLINE,
+                            AndroidColor.BLACK,
+                            null
+                        )
+                    )
+                }
+            }
+        )
+
+        PlayerContainer {
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            PlayerSeekBar(
+                value = progress,
+                onValueChange = { progress = it }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            PlayerMainButton(
+                icon = Icons.Default.PlayArrow,
+                onClick = {
+                    if (player.isPlaying) player.pause()
+                    else player.play()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // SUBTITLE TOGGLE
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text("Subtitles")
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = subtitlesEnabled,
+                    onCheckedChange = { subtitlesEnabled = it }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // SUBTITLE DELAY
+            SubtitleDelayControl(
+                delayMs = subtitleDelay,
+                onDelayChange = { subtitleDelay = it }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // FONT SIZE
+            Text("Subtitle Size")
+            Slider(
+                value = subtitleSize,
+                onValueChange = { subtitleSize = it },
+                valueRange = 12f..32f
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // COLOR PICKER (simple)
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                ColorButton(AndroidColor.WHITE) { subtitleColor = AndroidColor.WHITE }
+                ColorButton(AndroidColor.YELLOW) { subtitleColor = AndroidColor.YELLOW }
+                ColorButton(AndroidColor.CYAN) { subtitleColor = AndroidColor.CYAN }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+/* SIMPLE COLOR BUTTON */
+
+@Composable
+fun ColorButton(color: Int, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = androidx.compose.ui.graphics.Color(color)
+        )
+    ) {}
+}
